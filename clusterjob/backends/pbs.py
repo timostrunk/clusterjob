@@ -90,7 +90,7 @@ class PbsBackend(ClusterjobBackend):
         assumed that by passing ``-x`` to ``qstat``, results for both running
         and finished jobs can be obtained.
         """
-        return ['qstat', '-x', str(run.job_id)]
+        return ['qstat', str(run.job_id)]
 
     def get_status(self, response, finished=False):
         """Given the stdout from the command returned by :meth:`cmd_status`,
