@@ -946,9 +946,9 @@ class AsyncResult(object):
                                                  ignore_exit_code=True, ssh=self.ssh)
                         status = self.backend.get_status(response, finished=True)
                 except StatusParseError:
+                    self._logger.warning("Status message for job could not be parsed. Retrying. Try number %d of %d"%(i+1, 5))
+                    time.sleep(0.5)
                     if i == 4:
-                        self._logger.warning("Status message for job could not be parsed. Retrying. Try number %d of %d"%(i+1, 5))
-                        time.sleep(0.5)
                         raise
 
             prev_status = self._status
