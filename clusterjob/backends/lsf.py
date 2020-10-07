@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import re
 from ..status import PENDING, RUNNING, COMPLETED, CANCELLED, FAILED
 from ..utils import time_to_seconds
+from ..clusterjob_exceptions import StatusParseError
 from .. import ClusterjobBackend
 
 def time_to_minutes(val):
@@ -92,18 +93,21 @@ class LsfBackend(ClusterjobBackend):
     def get_status(self, response, finished=False):
         """Given the stdout from the command returned by :meth:`cmd_status`,
         return one of the status code defined in :mod:`clusterjob.status`"""
-        status_pos = 0
-        for line in response.split("\n"):
-            if line.startswith('JOBID'):
-                try:
-                    status_pos = line.find('STAT')
-                except ValueError:
-                    return None
-            else:
-                status = line[status_pos:].split()[0]
-                if status in self.status_mapping:
-                    return self.status_mapping[status]
-        return None
+        try:
+            status_pos = 0
+            for line in response.split("\n"):
+                if line.startswith('JOBID'):
+                    try:
+                        status_pos = line.find('STAT')
+                    except ValueError:
+                        return None
+                else:
+                    status = line[status_pos:].split()[0]
+                    if status in self.status_mapping:
+                        return self.status_mapping[status]
+            return None
+        except IndexError as e:
+            raise StatusParseError("Unable to parse status output. The complete output of bjobs -a jobid was: %s"%response) from e
 
     def cmd_cancel(self, run):
         """Given a :class:`~clusterjob.AsyncResult` instance, return an

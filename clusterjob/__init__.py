@@ -47,6 +47,7 @@ from .status import (STATUS_CODES, COMPLETED, FAILED, CANCELLED, PENDING,
         str_status)
 from .utils import (set_executable, run_cmd, upload_file, mkdir,
         time_to_seconds)
+from .clusterjob_exceptions import StatusParseError
 
 _BACKENDS = [LPbsBackend(), LsfBackend(), PbsBackend(), PbsProBackend(),
              SgeBackend(), SlurmBackend()]
@@ -922,6 +923,7 @@ class AsyncResult(object):
         self.epilogue = None
         self.ssh = 'ssh'
         self.scp = 'scp'
+        self._logger = logging.getLogger(__name__)
 
     @property
     def status(self):
@@ -932,15 +934,23 @@ class AsyncResult(object):
         if self._status >= COMPLETED:
             return self._status
         else:
-            cmd = self.backend.cmd_status(self, finished=False)
-            response = self._run_cmd(cmd, self.remote, ignore_exit_code=True,
-                                     ssh=self.ssh)
-            status = self.backend.get_status(response, finished=False)
-            if status is None:
-                cmd = self.backend.cmd_status(self, finished=True)
-                response = self._run_cmd(cmd, self.remote,
-                                         ignore_exit_code=True, ssh=self.ssh)
-                status = self.backend.get_status(response, finished=True)
+            for i in range(0, 5):
+                try:
+                    cmd = self.backend.cmd_status(self, finished=False)
+                    response = self._run_cmd(cmd, self.remote, ignore_exit_code=True,
+                                             ssh=self.ssh)
+                    status = self.backend.get_status(response, finished=False)
+                    if status is None:
+                        cmd = self.backend.cmd_status(self, finished=True)
+                        response = self._run_cmd(cmd, self.remote,
+                                                 ignore_exit_code=True, ssh=self.ssh)
+                        status = self.backend.get_status(response, finished=True)
+                except StatusParseError:
+                    if i == 4:
+                        self._logger.warning("Status message for job could not be parsed. Retrying. Try number %d of %d"%(i+1, 5))
+                        time.sleep(0.5)
+                        raise
+
             prev_status = self._status
             self._status = status
             if self._status not in STATUS_CODES:
