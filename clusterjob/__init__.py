@@ -934,7 +934,7 @@ class AsyncResult(object):
         if self._status >= COMPLETED:
             return self._status
         else:
-            for i in range(0, 5):
+            for i in range(0, 26):
                 try:
                     cmd = self.backend.cmd_status(self, finished=False)
                     response = self._run_cmd(cmd, self.remote, ignore_exit_code=True,
@@ -946,9 +946,9 @@ class AsyncResult(object):
                                                  ignore_exit_code=True, ssh=self.ssh)
                         status = self.backend.get_status(response, finished=True)
                 except StatusParseError:
-                    self._logger.warning("Status message for job could not be parsed. Retrying. Try number %d of %d"%(i+1, 5))
+                    self._logger.warning("Status message for job could not be parsed. Retrying. Try number %d of %d"%(i+1, 25))
                     time.sleep(0.5)
-                    if i == 4:
+                    if i == 25:
                         raise
 
             prev_status = self._status
