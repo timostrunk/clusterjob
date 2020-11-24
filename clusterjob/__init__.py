@@ -945,6 +945,8 @@ class AsyncResult(object):
                         response = self._run_cmd(cmd, self.remote,
                                                  ignore_exit_code=True, ssh=self.ssh)
                         status = self.backend.get_status(response, finished=True)
+                    if status is not None:
+                        break
                 except StatusParseError:
                     self._logger.warning("Status message for job could not be parsed. Retrying. Try number %d of %d"%(i+1, 25))
                     time.sleep(0.5)
@@ -954,7 +956,7 @@ class AsyncResult(object):
             prev_status = self._status
             self._status = status
             if self._status not in STATUS_CODES:
-                raise ValueError("Invalid status code %s", self._status)
+                raise StatusParseError("Invalid status code %s"% self._status)
             if prev_status != self._status:
                 if self._status >= COMPLETED:
                     self.run_epilogue()
