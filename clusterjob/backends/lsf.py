@@ -133,6 +133,8 @@ class LsfBackend(ClusterjobBackend):
             nodes = resources['nodes']
         if len(set(['ppn', 'threads', 'nodes']).intersection(resources)) > 0:
             line = '%s -n %d' % (self.prefix, nodes*cores_per_node)
+            if cores_per_node > 1:
+                line += ' -R "span[ptile=%d]"' % cores_per_node
             lines.append(line)
         for (key, val) in resources.items():
             if key in ['nodes', 'ppn', 'threads']:
